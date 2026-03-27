@@ -19,7 +19,7 @@
     "author": "Nutonia Team",
     "license": "UNLICENSED",
     "dependencies": {
-        "@google/genai": "^1.30.0",
+        "@google/generative-ai": "^0.21.0",
         "@supabase/supabase-js": "^2.39.0",
         "axios": "^1.13.2",
         "bcrypt": "^5.1.0",
