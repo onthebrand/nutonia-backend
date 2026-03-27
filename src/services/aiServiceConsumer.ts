@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-// import { contentQueue } from './queueService'; // Removed circular dependency, or use type import
+// import { contentQueue } from './queueService.js'; // Removed circular dependency, or use type import
 
 // --- Types matching the Microservice API Contract ---
 

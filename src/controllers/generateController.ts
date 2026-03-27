@@ -4,8 +4,8 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { nanoid } from 'nanoid';
 import redis from '../config/redis.js';
 import { contentQueue } from '../services/queueService.js';
-import { videoProductionService } from '../services/VideoProductionService';
-import { generateLyrics as generateLyricsService } from '../services/geminiService';
+import { videoProductionService } from '../services/VideoProductionService.js';
+import { generateLyrics as generateLyricsService } from '../services/geminiService.js';
 
 /**
  * POST /api/generate/content
@@ -168,7 +168,7 @@ export async function generateImage(req: AuthRequest, res: Response): Promise<vo
     try {
         const { prompt, model } = req.body;
         // Basic credit check could go here, for now MVP
-        const result = await import('../services/geminiService').then(m => m.generateImage(prompt, model));
+        const result = await import('../services/geminiService.js').then(m => m.generateImage(prompt, model));
         res.json(result);
     } catch (error: any) {
         res.status(500).json({ error: error.message });

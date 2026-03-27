@@ -1,7 +1,7 @@
-import { generateVideo, generateImage, generateTextExplanation } from './geminiService';
-import { textToSpeechService } from './TextToSpeechService';
-import sunoService from './sunoService'; // Assuming this exists
-import storageService from './storageService';
+import { generateVideo, generateImage, generateTextExplanation } from './geminiService.js';
+import { textToSpeechService } from './TextToSpeechService.js';
+import sunoService from './sunoService.js'; // Assuming this exists
+import storageService from './storageService.js';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
