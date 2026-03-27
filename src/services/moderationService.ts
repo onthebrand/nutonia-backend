@@ -1,14 +1,14 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '../config/env.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { MODERATION_CONFIG, ModerationCategory } from '../config/moderationConfig.js';
 
 // Gemini client for moderation
-let moderationClient: GoogleGenAI | null = null;
+let moderationClient: GoogleGenerativeAI | null = null;
 
-function getClient(): GoogleGenAI {
+function getClient(): GoogleGenerativeAI {
     if (!moderationClient) {
-        moderationClient = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+        moderationClient = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     }
     return moderationClient;
 }
@@ -42,16 +42,18 @@ export async function analyzePrompt(
         const moderationPrompt = MODERATION_CONFIG.MODERATION_PROMPT.replace('{PROMPT}', prompt);
 
         // Call Gemini for analysis
-        const response = await ai.models.generateContent({
+        const model = ai.getGenerativeModel({
             model: 'gemini-2.0-flash-exp',
-            contents: [{ parts: [{ text: moderationPrompt }] }],
-            config: {
+        });
+        const resultRaw = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: moderationPrompt }] }],
+            generationConfig: {
                 temperature: 0.1, // Low temperature for consistent moderation
                 responseMimeType: 'application/json',
             },
         });
 
-        const resultText = response.text;
+        const resultText = resultRaw.response.text();
         const result = JSON.parse(resultText || "{}");
 
         const moderationResult: ModerationResult = {
