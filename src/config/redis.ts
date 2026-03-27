@@ -5,23 +5,24 @@ import { env } from './env.js';
 const isLocalRedis = env.REDIS_URL.includes('localhost') || env.REDIS_URL.includes('127.0.0.1');
 
 // Create Redis connection
+console.log(`Connecting to Redis at ${env.REDIS_URL.split('@')[1] || 'URL masked'}...`);
+
 export const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null, // Required for BullMQ
+    family: 4, // Force IPv4 to avoid Render/Upstash resolution issues
+    connectTimeout: 10000, // 10 seconds
     // In dev, fail fast. In prod, use default retries
     retryStrategy(times: number) {
-        if (env.NODE_ENV === 'development') {
-            if (times > 3) {
-                console.warn('⚠️ Redis dev connection failed multiple times. Queues may not work, but API will start.');
-                return null; // Stop retrying
-            }
-            return Math.min(times * 50, 2000);
+        const delay = Math.min(times * 100, 3000);
+        if (env.NODE_ENV === 'development' && times > 3) {
+            console.warn('⚠️ Redis dev connection failed. Skipping...');
+            return null;
         }
-        // Default reconnect strategy for prod
-        return Math.min(times * 50, 2000);
+        return delay;
     },
-    tls: isLocalRedis ? undefined : {
+    tls: env.REDIS_URL.startsWith('rediss://') ? {
         rejectUnauthorized: false
-    }
+    } : undefined
 });
 
 redis.on('connect', () => {
