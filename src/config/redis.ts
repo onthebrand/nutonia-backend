@@ -8,28 +8,32 @@ const isLocalRedis = env.REDIS_URL.includes('localhost') || env.REDIS_URL.includ
 const url = new URL(env.REDIS_URL);
 console.log(`Connecting to Redis at ${url.hostname} using ${url.protocol}...`);
 
+export let redisStatus = 'INITIALIZING';
+
 export const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null, // Required for BullMQ
     family: 4, // Force IPv4
-    connectTimeout: 20000, // 20 seconds for slower handshakes
-    enableReadyCheck: false, // Recommended for serverless/hosted Redis
-    lazyConnect: false,
-    // In dev, fail fast. In prod, use default retries
+    connectTimeout: 20000, 
+    enableReadyCheck: false,
+    lazyConnect: true, // Don't block startup
     retryStrategy(times: number) {
-        return Math.min(times * 200, 3000);
+        redisStatus = 'RECONNECTING';
+        return Math.min(times * 500, 5000);
     },
     tls: env.REDIS_URL.startsWith('rediss://') ? {
         rejectUnauthorized: false,
-        servername: url.hostname // Important for SNI in multi-tenant environments
+        servername: url.hostname
     } : undefined
 });
 
 redis.on('connect', () => {
+    redisStatus = 'CONNECTED';
     console.log('✓ Redis connected successfully');
 });
 
 redis.on('error', (err: Error) => {
-    console.error('✗ Redis connection error:', err);
+    redisStatus = 'ERROR';
+    console.error('✗ Redis connection error:', err.message);
 });
 
 export default redis;

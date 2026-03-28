@@ -1,4 +1,4 @@
-﻿import './services/queueService.js';
+import './services/queueService.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -57,10 +57,13 @@ app.use(express.static(path.join(process.cwd(), 'public')));
 // Rate limiting
 app.use(apiRateLimiter);
 
+import { redisStatus } from './config/redis.js';
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
+        redis: redisStatus,
         timestamp: new Date().toISOString(),
         environment: env.NODE_ENV,
     });
