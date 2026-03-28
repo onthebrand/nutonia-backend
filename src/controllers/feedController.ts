@@ -29,6 +29,11 @@ export async function getPublicFeed(req: Request, res: Response): Promise<void> 
         }
 
         const { data: candidates, error: candidateError } = await candidateQuery;
+        
+        console.log(`[FeedController] Found ${candidates?.length || 0} candidates for public feed.`);
+        if (candidates && candidates.length > 0) {
+            console.log(`[FeedController] First candidate: ${candidates[0].topic}`);
+        }
 
         if (candidateError) {
             console.error('Get feed error:', candidateError);
