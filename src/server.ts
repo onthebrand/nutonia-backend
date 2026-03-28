@@ -33,12 +33,20 @@ app.use(
             if (origin.match(/^http:\/\/localhost:\d+$/)) {
                 return callback(null, true);
             }
-            // Allow production frontend
-            if (origin === env.FRONTEND_URL) {
+            
+            // Allow production domains
+            const allowedDomains = [
+                'https://onthebrand.cl',
+                'https://www.onthebrand.cl',
+                'https://onthebrand-neurolearn.vercel.app',
+                env.FRONTEND_URL
+            ];
+
+            if (allowedDomains.includes(origin) || origin.endsWith('.vercel.app')) {
                 return callback(null, true);
             }
 
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin: ' + origin;
             return callback(new Error(msg), false);
         },
         credentials: true,
