@@ -13,10 +13,10 @@
       ]
     },
     {
-      "name": "models/gemini-2.5-flash",
+      "name": "models/gemini-1.5-flash",
       "version": "001",
-      "displayName": "Gemini 2.5 Flash",
-      "description": "Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.",
+      "displayName": "Gemini 1.5 Flash",
+      "description": "Stable version of Gemini 1.5 Flash, our mid-size multimodal model that supports up to 1 million tokens.",
       "inputTokenLimit": 1048576,
       "outputTokenLimit": 65536,
       "supportedGenerationMethods": [
@@ -32,10 +32,10 @@
       "thinking": true
     },
     {
-      "name": "models/gemini-2.5-pro",
+      "name": "models/gemini-1.5-pro",
       "version": "2.5",
-      "displayName": "Gemini 2.5 Pro",
-      "description": "Stable release (June 17th, 2025) of Gemini 2.5 Pro",
+      "displayName": "Gemini 1.5 Pro",
+      "description": "Stable release of Gemini 1.5 Pro",
       "inputTokenLimit": 1048576,
       "outputTokenLimit": 65536,
       "supportedGenerationMethods": [

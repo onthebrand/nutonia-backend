@@ -211,3 +211,21 @@ export async function getGenerationStatus(req: AuthRequest, res: Response): Prom
         res.status(500).json({ error: 'Internal server error' });
     }
 }
+
+/**
+ * POST /api/generate/subtopics
+ */
+export async function generateSubtopics(req: AuthRequest, res: Response): Promise<void> {
+    try {
+        const { topic, context } = req.body;
+        if (!topic) {
+            res.status(400).json({ error: 'Topic is required' });
+            return;
+        }
+        const result = await import('../services/geminiService.js').then(m => m.generateSubtopics(topic, context || ''));
+        res.json(result);
+    } catch (error: any) {
+        console.error('Generate subtopics error:', error);
+        res.status(500).json({ error: error.message });
+    }
+}

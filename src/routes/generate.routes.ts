@@ -23,4 +23,7 @@ router.post('/lyrics', generateController.generateLyrics);
 // Generate Single Image
 router.post('/image', generateController.generateImage);
 
+// Generate Subtopics
+router.post('/subtopics', generateController.generateSubtopics);
+
 export default router;

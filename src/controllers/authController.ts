@@ -130,9 +130,9 @@ export async function login(req: Request, res: Response): Promise<void> {
             .single();
 
         // Auto-refill Nutons for Admins local testing
-        if (profile && profile.role === 'admin' && profile.credits < 10000) {
-            profile.credits = 99999;
-            await supabaseAdmin.from('users').update({ credits: 99999 }).eq('id', profile.id);
+        if (profile && profile.role?.toUpperCase() === 'ADMIN' && profile.credits < 10000) {
+            profile.credits = 9999999;
+            await supabaseAdmin.from('users').update({ credits: 9999999 }).eq('id', profile.id);
         }
 
         res.json({
@@ -220,9 +220,14 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
 
         // Auto-refill Nutons for Admins local testing
         let userCredits = dbProfile.credits;
-        if (dbProfile.role === 'admin' && userCredits < 10000) {
-            userCredits = 99999;
-            await supabaseAdmin.from('users').update({ credits: 99999 }).eq('id', dbProfile.id);
+        const userRole = dbProfile.role?.toUpperCase();
+        
+        console.log(`[Sync] User: ${user.email}, Role: ${userRole}, Credits: ${userCredits}`);
+
+        if (userRole === 'ADMIN' && userCredits < 10000) {
+            userCredits = 9999999; // 9.9M like in prod
+            console.log(`[Sync] Auto-refilling credits for admin: ${user.email}`);
+            await supabaseAdmin.from('users').update({ credits: 9999999 }).eq('id', dbProfile.id);
         }
 
         // Merge with metadata
@@ -232,9 +237,9 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
             credits: userCredits,
             role: dbProfile.role,
             channel: {
-                handle: dbProfile.username || user.email!.split('@')[0], // Map username to handle
-                displayName: user.user_metadata.full_name || dbProfile.username || user.email!.split('@')[0],
-                avatarUrl: user.user_metadata.avatarUrl || user.user_metadata.avatar_url || ''
+                handle: dbProfile.handle || dbProfile.username?.toLowerCase().replace(/\s+/g, '_') || user.email!.split('@')[0],
+                displayName: dbProfile.username || user.user_metadata.full_name || user.email!.split('@')[0],
+                avatarUrl: dbProfile.avatar_url || user.user_metadata.avatarUrl || user.user_metadata.avatar_url || ''
             },
             preferences: {
                 autoplay: true,
@@ -280,9 +285,9 @@ export async function getMe(req: Request, res: Response): Promise<void> {
             .single();
 
         // Auto-refill Nutons for Admins local testing
-        if (dbProfile && dbProfile.role === 'admin' && dbProfile.credits < 10000) {
-            dbProfile.credits = 99999;
-            await supabaseAdmin.from('users').update({ credits: 99999 }).eq('id', dbProfile.id);
+        if (dbProfile && dbProfile.role?.toUpperCase() === 'ADMIN' && dbProfile.credits < 10000) {
+            dbProfile.credits = 9999999;
+            await supabaseAdmin.from('users').update({ credits: 9999999 }).eq('id', dbProfile.id);
         }
 
         const fullProfile = {

@@ -29,7 +29,7 @@ export async function checkCredits(
         }
 
         // Bypass check for admins
-        if (user.role === 'ADMIN') {
+        if (user.role?.toUpperCase() === 'ADMIN') {
             next();
             return;
         }

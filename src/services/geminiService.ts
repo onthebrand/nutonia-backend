@@ -135,7 +135,7 @@ async function researchTopic(topic: string): Promise<any> {
     try {
         console.log(`Researching topic for sources: ${topic}`);
         const model = ai.getGenerativeModel({
-            model: 'gemini-2.5-flash', // Use available model
+            model: 'gemini-1.5-flash', // Standard stable flash model
         });
         const result = await model.generateContent({
             contents: [{ role: 'user', parts: [{ text: `Investiga sobre: "${topic}". \n      Proporciona 3 datos clave y asegúrate de usar la herramienta de búsqueda para obtener fuentes reales.` }] }],
@@ -165,9 +165,9 @@ export async function generateLyrics(
     const ai = getClient();
     // Try available models based on API capabilities
     // For very long technical prompts, prioritize Pro model for better coherence
-    const modelsToTry = textPrompt.length > 1000
-        ? ['gemini-2.5-pro', 'gemini-2.5-flash']
-        : ['gemini-2.5-flash', 'gemini-2.5-pro'];
+    const modelsToTry = textPrompt.length > 2000
+        ? ['gemini-1.5-pro', 'gemini-1.5-flash']
+        : ['gemini-1.5-flash', 'gemini-1.5-pro'];
 
     let lastError;
 
@@ -283,7 +283,7 @@ Aprovecha el material para explicar el tema de principio a fin de forma equilibr
 /**
  * Generate image with Gemini (supports Nano Banana / Gemini 3 Pro)
  */
-export async function generateImage(prompt: string, model: string = 'gemini-3-pro-image-preview', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
+export async function generateImage(prompt: string, model: string = 'gemini-1.5-flash', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
     const ai = getClient();
 
     try {
@@ -494,7 +494,7 @@ Asegúrate de que la explicación sea lo suficientemente rica para que el usuari
     }
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -545,7 +545,7 @@ export async function generateInfographicBrief(topic: string, language: string =
     IDIOMA: ${language === 'English' ? 'INGLÉS' : 'ESPAÑOL'}.
     IMPORTANTE: Este texto será usado para instruir a una IA de generación de imágenes, así que sé descriptivo con lo que debe aparecer visualmente (ej. "Mostrar un diagrama de flujo...", "Usar un gráfico de barras...").`;
 
-        const modelInstance = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const modelInstance = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const result = await modelInstance.generateContent(prompt);
         const response = result.response;
 
@@ -598,7 +598,7 @@ export async function generatePresentation(
   IDIOMA DE SALIDA: ${language}.`;
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         generationConfig: { responseMimeType: 'application/json' },
         safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -631,8 +631,8 @@ export async function generatePresentation(
 
     // Execute Cover + Background generation in parallel
     const [coverImageResult, bgImageResult] = await Promise.all([
-        generateImage(coverPrompt, 'gemini-3-pro-image-preview'),
-        generateImage(themePrompt, 'gemini-3-pro-image-preview')
+        generateImage(coverPrompt, 'gemini-1.5-flash'),
+        generateImage(themePrompt, 'gemini-1.5-flash')
     ]);
 
     // Upload Cover & Background to Cloudinary
@@ -660,7 +660,7 @@ export async function generatePresentation(
 
             try {
                 // Generate (Use '16:9' for standard landscape slides)
-                const slideImgResult = await generateImage(`${slide.imagePrompt}. Text in Spanish only.`, 'gemini-3-pro-image-preview', '16:9');
+                const slideImgResult = await generateImage(`${slide.imagePrompt}. Text in Spanish only.`, 'gemini-1.5-flash', '16:9');
                 // Upload
                 const uploadedUrl = await storageService.uploadImage(slideImgResult.mediaUrl, 'nutonia-presentations');
                 // Assign
@@ -765,7 +765,7 @@ export async function generateMiniGame(
   `;
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         generationConfig: {
             responseMimeType: 'application/json',
             temperature: 1.0 // High creativity for Map generation
@@ -797,7 +797,7 @@ export async function generateMiniGame(
             // 60s timeout (User requested high reliability)
             const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject("Timeout"), startTimeout));
             const imgRes = await Promise.race([
-                generateImage(prompt, 'gemini-3-pro-image-preview', aspectRatio),
+                generateImage(prompt, 'gemini-1.5-flash', aspectRatio),
                 timeoutPromise
             ]) as any;
             if (imgRes && imgRes.mediaUrl) {
@@ -937,7 +937,7 @@ Respond ONLY with the RAW HTML code. Do NOT wrap it in markdown blockquotes like
 
     try {
         const model = ai.getGenerativeModel({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-1.5-flash',
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -1022,5 +1022,70 @@ Respond ONLY with the RAW HTML code. Do NOT wrap it in markdown blockquotes like
     } catch (error: any) {
         console.error("Interactive web generation failed:", error);
         throw new Error(`Error generando web interactiva: ${error.message}`);
+    }
+}
+
+/**
+ * Generate subtopics for the TopicExplorer
+ */
+export async function generateSubtopics(parentTopic: string, context: string = ''): Promise<any[]> {
+    const ai = getClient();
+    try {
+        const modelInstance = ai.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const prompt = `Actúa como un experto en diseño instruccional, pedagogía y educación a lo largo de la vida.
+  El usuario quiere explorar subtemas, unidades o áreas clave para aprender sobre: "${parentTopic}" dentro de la categoría: "${context}".
+  
+  Reglas de generación:
+  1. Si la categoría es "Educación Media" o similar, básate en el currículum escolar general.
+  2. Si la categoría es "Universitario", "Estudios Técnicos", "Oficios" o "Intereses", desglosa el tema en 6 a 9 subtemas, módulos o habilidades fundamentales, ordenados de menor a mayor complejidad.
+  3. Los subtemas deben ser ricos, específicos y atractivos para aprender.
+  
+  Formato de respuesta (Array JSON EXCLUSIVAMENTE):
+  [
+    {
+      "name": "Nombre de la Unidad / Tema",
+      "description": "Breve descripción del contenido (max 12 palabras)",
+      "icon": "Emoji pertinente"
+    }
+  ]
+  
+  IMPORTANTE: Solo devuelve el JSON válido, sin delimitadores de markdown, sin texto adicional.`;
+
+        const result = await modelInstance.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+        
+        const response = await result.response;
+        const text = response.text() || '[]';
+
+        // Clean markdown code blocks if present
+        let jsonStr = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        
+        // Ensure we only parse the array part
+        const startIdx = jsonStr.indexOf('[');
+        const endIdx = jsonStr.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) {
+            jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+        }
+
+        const data = JSON.parse(jsonStr || '[]');
+
+        return data.map((item: any) => ({
+            id: item.name.toLowerCase().replace(/\s+/g, '-'),
+            name: item.name,
+            category: 'generated',
+            icon: item.icon,
+            description: item.description,
+            suggestedPrompts: [item.name]
+        }));
+    } catch (error: any) {
+        console.error("Error generating subtopics in backend:", error);
+        throw new Error(`Failed to generate subtopics: ${error.message}`);
     }
 }
