@@ -135,7 +135,7 @@ async function researchTopic(topic: string): Promise<any> {
     try {
         console.log(`Researching topic for sources: ${topic}`);
         const model = ai.getGenerativeModel({
-            model: 'gemini-1.5-flash', // Standard stable flash model
+            model: 'gemini-2.5-flash', // Standard stable flash model
         });
         const result = await model.generateContent({
             contents: [{ role: 'user', parts: [{ text: `Investiga sobre: "${topic}". \n      Proporciona 3 datos clave y asegúrate de usar la herramienta de búsqueda para obtener fuentes reales.` }] }],
@@ -166,8 +166,8 @@ export async function generateLyrics(
     // Try available models based on API capabilities
     // For very long technical prompts, prioritize Pro model for better coherence
     const modelsToTry = textPrompt.length > 2000
-        ? ['gemini-1.5-pro', 'gemini-1.5-flash']
-        : ['gemini-1.5-flash', 'gemini-1.5-pro'];
+        ? ['gemini-2.5-pro', 'gemini-2.5-flash']
+        : ['gemini-2.5-flash', 'gemini-2.5-pro'];
 
     let lastError;
 
@@ -186,6 +186,12 @@ MATERIAL TÉCNICO A PROCESAR:
 ---
 ${textPrompt}
 ---
+
+**DESAMBIGUACIÓN IMPORTANTE (DICOM CHILENO VS MEDICAL DICOM):**
+- Si el tema trata de "DICOM", "Equifax", "financiero", "crédito", "deuda", "historial crediticio", "score", etc., se refiere **ÚNICAMENTE** al sistema de registro de deudas financieras de Chile (Boletín de Informaciones Comerciales de Equifax).
+- **NUNCA** lo confundas con el estándar médico "Digital Imaging and Communications in Medicine" (imágenes médicas, radiografías, píxeles, etc.). No hables de médicos, radiografías, píxeles, metadatos de imagen o salud si el contexto es financiero o de deudas comerciales.
+- **CONTEXTO CHILENO:** Toda explicación de deudas, créditos, Dicom y finanzas personales debe ceñirse 100% a la realidad chilena. Usa términos como "Boletín Comercial", "Equifax", "deudas vencidas", "gasto", "CMF" (Comisión para el Mercado Financiero) y la "Ley Chao Dicom". NUNCA hables de conceptos de EE.UU. como "FICO Score" o "Credit Bureaus" (burós de crédito).
+- **OBJETIVO PEDAGÓGICO DE DICOM:** Enseña de forma práctica cómo leer e interpretar el informe: menciona el puntaje/score (que va de 1 a 999, donde 999 es excelente sin riesgo ni deudas y 1 es riesgo máximo de no pago), las deudas morosas (atrasos), protestadas (cheques o letras sin fondos) o castigadas (deudas dadas por perdidas), y cómo salir (pagando para aclarar la deuda, renegociando las condiciones o por prescripción legal tras 5 años).
 
 INSTRUCCIONES CRÍTICAS PARA CALIDAD PREMIUM:
 1. ESTRUCTURA Y DURACIÓN: Genera una canción de duración media-larga (4-5 minutos). Estructura obligatoria: [Intro], [Verse 1], [Chorus], [Verse 2], [Chorus], [Bridge], [Verse 3], [Chorus], [Outro], [End].
@@ -283,7 +289,7 @@ Aprovecha el material para explicar el tema de principio a fin de forma equilibr
 /**
  * Generate image with Gemini (supports Nano Banana / Gemini 3 Pro)
  */
-export async function generateImage(prompt: string, model: string = 'gemini-1.5-flash', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
+export async function generateImage(prompt: string, model: string = 'gemini-2.5-flash', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
     const ai = getClient();
 
     try {
@@ -475,6 +481,7 @@ REQUERIMIENTOS:
 4. FORMATO: Sigue estas guías: ${profile.formatDescription}. Usa negritas para términos clave.
 5. BRANDING: Usa "Nutonia" como el ecosistema de aprendizaje.
 6. IDIOMA: Responde ÚNICAMENTE en ${language}.
+7. CONTEXTO CHILENO COMPLETO (OBLIGATORIO): Todo el contenido, terminología, instituciones, leyes, impuestos, y casos de estudio DEBEN estar estrictamente adaptados y contextualizados a la realidad de Chile (por ejemplo, usar pesos chilenos (CLP), UF, UTM, referirse a la Comisión para el Mercado Financiero (CMF), SII, DICOM o Equifax, en lugar de conceptos estadounidenses o de otros países como FICO Score, Buró de Crédito, IRS, IRS 401k, etc.). Esto aplica rigurosamente para todas las materias y especialidades.
 
 Asegúrate de que la explicación sea lo suficientemente rica para que el usuario sienta que ha aprendido algo nuevo y complejo de forma sencilla.`;
 
@@ -494,7 +501,7 @@ Asegúrate de que la explicación sea lo suficientemente rica para que el usuari
     }
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -545,7 +552,7 @@ export async function generateInfographicBrief(topic: string, language: string =
     IDIOMA: ${language === 'English' ? 'INGLÉS' : 'ESPAÑOL'}.
     IMPORTANTE: Este texto será usado para instruir a una IA de generación de imágenes, así que sé descriptivo con lo que debe aparecer visualmente (ej. "Mostrar un diagrama de flujo...", "Usar un gráfico de barras...").`;
 
-        const modelInstance = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const modelInstance = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const result = await modelInstance.generateContent(prompt);
         const response = result.response;
 
@@ -581,6 +588,8 @@ export async function generatePresentation(
   
   Adicionalmente, genera una "themeDescription" visual para el fondo general de la presentación.
   
+  CONTEXTO CHILENO COMPLETO (OBLIGATORIO): Adapta rigurosamente toda la terminología, ejemplos, instituciones, leyes, impuestos y divisas a la realidad chilena (ej. usar CLP, UF, UTM, CMF, SII, DICOM en lugar de FICO, IRS, burós de crédito extranjeros, etc.).
+  
   Responde EXCLUSIVAMENTE con un JSON en este formato:
   {
     "title": "Título de la Presentación",
@@ -598,7 +607,7 @@ export async function generatePresentation(
   IDIOMA DE SALIDA: ${language}.`;
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: { responseMimeType: 'application/json' },
         safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -631,8 +640,8 @@ export async function generatePresentation(
 
     // Execute Cover + Background generation in parallel
     const [coverImageResult, bgImageResult] = await Promise.all([
-        generateImage(coverPrompt, 'gemini-1.5-flash'),
-        generateImage(themePrompt, 'gemini-1.5-flash')
+        generateImage(coverPrompt, 'gemini-2.5-flash'),
+        generateImage(themePrompt, 'gemini-2.5-flash')
     ]);
 
     // Upload Cover & Background to Cloudinary
@@ -660,7 +669,7 @@ export async function generatePresentation(
 
             try {
                 // Generate (Use '16:9' for standard landscape slides)
-                const slideImgResult = await generateImage(`${slide.imagePrompt}. Text in Spanish only.`, 'gemini-1.5-flash', '16:9');
+                const slideImgResult = await generateImage(`${slide.imagePrompt}. Text in Spanish only.`, 'gemini-2.5-flash', '16:9');
                 // Upload
                 const uploadedUrl = await storageService.uploadImage(slideImgResult.mediaUrl, 'nutonia-presentations');
                 // Assign
@@ -761,11 +770,12 @@ export async function generateMiniGame(
   - PROGRESSIVE DIFFICULTY: You must generate questions covering ALL 5 difficulties ("Muy Fácil", "Fácil", "Medio", "Difícil", "Muy Difícil"). Generate at least 2 questions per difficulty.
   - VARIETY: Each enemy MUST have a completely UNIQUE question. Do NOT repeat concepts. Cover different aspects of the topic.
   - SHUFFLE: Ensure the level layout and enemy progression feel diverse.
+  - CONTEXTO CHILENO COMPLETO (OBLIGATORIO): Todas las preguntas, respuestas y explicaciones del juego DEBEN estar adaptadas rigurosamente al sistema, regulaciones, terminología, impuestos y realidad de Chile (por ejemplo, usar CLP, UF, CMF, SII, DICOM/Equifax en lugar de FICO, burós de crédito extranjeros, IRS, etc.).
   - OUTPUT LANGUAGE: ${language}.
   `;
 
     const modelInstance = ai.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         generationConfig: {
             responseMimeType: 'application/json',
             temperature: 1.0 // High creativity for Map generation
@@ -797,7 +807,7 @@ export async function generateMiniGame(
             // 60s timeout (User requested high reliability)
             const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject("Timeout"), startTimeout));
             const imgRes = await Promise.race([
-                generateImage(prompt, 'gemini-1.5-flash', aspectRatio),
+                generateImage(prompt, 'gemini-2.5-flash', aspectRatio),
                 timeoutPromise
             ]) as any;
             if (imgRes && imgRes.mediaUrl) {
@@ -886,6 +896,7 @@ CRITICAL MISSION (WORLD-CLASS STANDARD):
 8. ${styleString} Apply this aesthetic creatively to the UI components (buttons, backgrounds, borders).
 9. FRAMEWORK: Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>) for rapid, beautiful layout. You can also use other CDNs (GSAP, Chart.js, etc) if necessary, but KEEP IT IN A SINGLE FILE.
 10. LANGUAGE: All visible text, labels, and explanations MUST be completely in ${language}.
+11. CONTEXTO CHILENO COMPLETO (OBLIGATORIO): Toda la lógica de cálculo, simuladores, leyes, impuestos, y explicaciones del panel interactivo deben apegarse rigurosamente al sistema, terminología, instituciones y contexto de Chile (por ejemplo, usar CLP, UF, UTM, regulaciones del SII, CMF, etc. en lugar de conceptos estadounidenses o de otros países).
 
 TEMPLATE GUIDELINE:
 <!DOCTYPE html>
@@ -937,7 +948,7 @@ Respond ONLY with the RAW HTML code. Do NOT wrap it in markdown blockquotes like
 
     try {
         const model = ai.getGenerativeModel({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.5-flash',
             safetySettings: [
                 { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                 { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -1030,62 +1041,115 @@ Respond ONLY with the RAW HTML code. Do NOT wrap it in markdown blockquotes like
  */
 export async function generateSubtopics(parentTopic: string, context: string = ''): Promise<any[]> {
     const ai = getClient();
-    try {
-        const modelInstance = ai.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
-        });
+    let attempts = 3;
+    let delayMs = 1500;
+    let lastError: any = null;
 
-        const prompt = `Actúa como un experto en diseño instruccional, pedagogía y educación a lo largo de la vida.
-  El usuario quiere explorar subtemas, unidades o áreas clave para aprender sobre: "${parentTopic}" dentro de la categoría: "${context}".
+    while (attempts > 0) {
+        try {
+            console.log(`[GeminiService] Generating subtopics for parent: "${parentTopic}" (attempts left: ${attempts})`);
+            const modelInstance = ai.getGenerativeModel({
+                model: "gemini-2.5-flash-lite",
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "array" as any,
+                        items: {
+                            type: "object" as any,
+                            properties: {
+                                name: { type: "string" as any },
+                                description: { type: "string" as any },
+                                icon: { type: "string" as any }
+                            },
+                            required: ["name", "description", "icon"]
+                        }
+                    },
+                    temperature: 0.1,
+                    maxOutputTokens: 1000,
+                }
+            });
+
+            const prompt = `Actúa como un diseñador instruccional de élite y experto en pedagogía de alta especialización.
+  El usuario está explorando un mapa de conocimiento interactivo con un trayecto de aprendizaje de hasta 5 niveles de profundidad.
   
-  Reglas de generación:
-  1. Si la categoría es "Educación Media" o similar, básate en el currículum escolar general.
-  2. Si la categoría es "Universitario", "Estudios Técnicos", "Oficios" o "Intereses", desglosa el tema en 6 a 9 subtemas, módulos o habilidades fundamentales, ordenados de menor a mayor complejidad.
-  3. Los subtemas deben ser ricos, específicos y atractivos para aprender.
+  Ruta de navegación actual: ${context ? `${context} > ` : ''}${parentTopic}
+  
+  INSTRUCCIONES CRÍTICAS DE ESPECIALIZACIÓN (WOW EFFECT):
+  1. Analiza la ruta para comprender en qué nivel de profundidad te encuentras (determinado por la cantidad de temas en la ruta).
+  2. Genera de 5 a 8 subtemas que dividan "${parentTopic}" hacia el siguiente nivel de especialización y especificidad académica.
+  3. Cada nivel debe ser exponencialmente más técnico, específico y detallado que el anterior. El nivel 5 representa el micro-aprendizaje definitivo (por ejemplo: ecuaciones específicas, demostraciones de teoremas, aplicaciones industriales o micro-conceptos prácticos, no generalidades).
+  4. Ordena los subtemas con perfecta secuencia pedagógica para maximizar la retención.
+  5. Proporciona a cada subtema un emoji sumamente descriptivo y una descripción atractiva de máximo 12 palabras en español.
+  6. CRÍTICO: NUNCA utilices comillas dobles (") dentro de los campos "name" o "description". Si necesitas citar un libro, película o concepto, utiliza comillas simples (') exclusivamente (ejemplo: 'Don Quijote').
+  7. CONTEXTO CHILENO COMPLETO (OBLIGATORIO): Todo el contenido, terminología, instituciones, leyes, impuestos y casos de estudio DEBEN estar estrictamente adaptados y contextualizados a la realidad de Chile (por ejemplo, en finanzas personales usar pesos chilenos (CLP), UF, UTM, referirse a la Comisión para el Mercado Financiero (CMF), SII, DICOM o Equifax, en lugar de conceptos estadounidenses o de otros países como FICO Score, Buró de Crédito, IRS, IRS 401k, etc.). Esto aplica rigurosamente para todas las asignaturas, especialidades e hilos de aprendizaje de Nutonia.
   
   Formato de respuesta (Array JSON EXCLUSIVAMENTE):
   [
     {
-      "name": "Nombre de la Unidad / Tema",
-      "description": "Breve descripción del contenido (max 12 palabras)",
-      "icon": "Emoji pertinente"
+      "name": "Nombre de la Unidad / Tema de aprendizaje",
+      "description": "Qué aprenderá el usuario (max 12 palabras)",
+      "icon": "Emoji representativo"
     }
   ]
   
   IMPORTANTE: Solo devuelve el JSON válido, sin delimitadores de markdown, sin texto adicional.`;
 
-        const result = await modelInstance.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        });
-        
-        const response = await result.response;
-        const text = response.text() || '[]';
+            const result = await modelInstance.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            });
+            
+            const response = await result.response;
+            const text = response.text() || '[]';
 
-        // Clean markdown code blocks if present
-        let jsonStr = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
-        // Ensure we only parse the array part
-        const startIdx = jsonStr.indexOf('[');
-        const endIdx = jsonStr.lastIndexOf(']');
-        if (startIdx !== -1 && endIdx !== -1) {
-            jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+            // Clean markdown code blocks if present
+            let jsonStr = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+            
+            // Ensure we only parse the array part
+            const startIdx = jsonStr.indexOf('[');
+            const endIdx = jsonStr.lastIndexOf(']');
+            if (startIdx !== -1 && endIdx !== -1) {
+                jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+            }
+
+            let data;
+            try {
+                data = JSON.parse(jsonStr || '[]');
+            } catch (parseError: any) {
+                console.warn("[GeminiService] JSON parsing failed, attempting auto-repair...", parseError.message);
+                try {
+                    // Auto-repair unescaped quotes inside "name" or "description" values
+                    const repairedStr = jsonStr.replace(/"(name|description)"\s*:\s*"(.*?)"\s*(?=,\s*\n|,\s*"|\s*\n?\s*\})/g, (match, key, value) => {
+                        const sanitizedValue = value.replace(/"/g, "'");
+                        return `"${key}": "${sanitizedValue}"`;
+                    });
+                    data = JSON.parse(repairedStr);
+                    console.log("[GeminiService] Auto-repair of JSON successful!");
+                } catch (repairError) {
+                    console.error("[GeminiService] JSON auto-repair failed. Raw output was:", text);
+                    throw parseError; // throw original parse error
+                }
+            }
+
+            return data.map((item: any) => ({
+                id: item.name.toLowerCase().replace(/\s+/g, '-'),
+                name: item.name,
+                category: 'generated',
+                icon: item.icon,
+                description: item.description,
+                suggestedPrompts: [item.name]
+            }));
+
+        } catch (error: any) {
+            console.error(`[GeminiService] Subtopics generation failed (attempts left ${attempts}):`, error.message);
+            lastError = error;
+            attempts--;
+            if (attempts > 0) {
+                console.log(`[GeminiService] Waiting ${delayMs}ms before retrying...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                delayMs *= 2; // exponential backoff
+            }
         }
-
-        const data = JSON.parse(jsonStr || '[]');
-
-        return data.map((item: any) => ({
-            id: item.name.toLowerCase().replace(/\s+/g, '-'),
-            name: item.name,
-            category: 'generated',
-            icon: item.icon,
-            description: item.description,
-            suggestedPrompts: [item.name]
-        }));
-    } catch (error: any) {
-        console.error("Error generating subtopics in backend:", error);
-        throw new Error(`Failed to generate subtopics: ${error.message}`);
     }
+
+    throw new Error(`Failed to generate subtopics after multiple retries: ${lastError?.message || 'Unknown error'}`);
 }

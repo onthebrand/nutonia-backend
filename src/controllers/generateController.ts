@@ -2,10 +2,134 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { nanoid } from 'nanoid';
-import redis from '../config/redis.js';
+import redis, { redisStatus } from '../config/redis.js';
 import { contentQueue } from '../services/queueService.js';
 import { videoProductionService } from '../services/VideoProductionService.js';
-import { generateLyrics as generateLyricsService } from '../services/geminiService.js';
+import { generateLyrics as generateLyricsService, generateImage as generateImageService, generateTextExplanation, generateInfographicBrief } from '../services/geminiService.js';
+import { checkUserViolations, analyzePrompt, recordViolation } from '../services/moderationService.js';
+import { generateSongWithSuno } from '../services/sunoService.js';
+import { uploadImage } from '../services/storageService.js';
+
+// Memory fallback for jobs when Redis is offline
+const memoryJobs = new Map<string, any>();
+
+function updateMemoryJobStatus(jobId: string, status: string, message?: string, result?: any, error?: string) {
+    const existing = memoryJobs.get(jobId);
+    if (!existing) return;
+    memoryJobs.set(jobId, {
+        ...existing,
+        status,
+        message,
+        result,
+        error,
+        updatedAt: new Date().toISOString()
+    });
+}
+
+async function runJobInProcess(jobData: any, document?: any) {
+    const { jobId, userId, question, profile, musicStyle, styleId, voiceStyle, aspectRatio, language, collectionId } = jobData;
+    console.log(`[MemoryJob] Processing in-process job ${jobId} for user ${userId}`);
+
+    try {
+        // 1. Check if user is suspended
+        const { isSuspended, suspensionEnd } = await checkUserViolations(userId);
+        if (isSuspended) {
+            const endDate = suspensionEnd ? new Date(suspensionEnd).toLocaleDateString() : 'indefinida';
+            throw new Error(`Tu cuenta está suspendida hasta el ${endDate} debido a violaciones de la política de contenido.`);
+        }
+
+        // 2. AI Moderation Check
+        updateMemoryJobStatus(jobId, 'PROCESSING', 'Verificando contenido...');
+        const promptToAnalyze = `Tema: ${question}. Estilo: ${profile.title}. ${musicStyle ? `Estilo musical: ${musicStyle.name}` : ''}`;
+        const moderationResult = await analyzePrompt(promptToAnalyze, userId);
+
+        if (!moderationResult.isAppropriate) {
+            await recordViolation({
+                userId,
+                violationType: 'INAPPROPRIATE_PROMPT',
+                severity: 'LOW',
+                description: `Prompt rechazado: ${moderationResult.reasoning}`,
+                autoSuspend: true
+            });
+            throw new Error(`Contenido rechazado por política de moderación: ${moderationResult.reasoning}`);
+        }
+
+        updateMemoryJobStatus(jobId, 'PROCESSING', 'Iniciando generación...');
+        let result: any;
+
+        // Generation logic selection...
+        if (profile.type === 'MUSICAL' || profile.type === 'MUSIC_VIDEO') {
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Generando letra...');
+            const lyricsPrompt = `Crea una letra de canción educativa sobre: "${question}"\n\nEstilo: ${musicStyle?.promptInstruction || 'Música educativa alegre'} \n\nIdioma: ${language || 'Spanish'}`;
+            const { text: lyrics, metadata } = await generateLyricsService(lyricsPrompt, musicStyle?.name || 'educational', (msg) => updateMemoryJobStatus(jobId, 'PROCESSING', msg), document, styleId, language || 'Spanish');
+            
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Generando música...');
+            const sunoResults = await generateSongWithSuno(lyrics, musicStyle?.sunoTags || 'educational', question, (msg) => updateMemoryJobStatus(jobId, 'PROCESSING', msg), profile.type === 'MUSIC_VIDEO');
+            
+            const mainResult = sunoResults[0];
+            const isVideo = profile.type === 'MUSIC_VIDEO' && mainResult.videoUrl;
+            result = {
+                topic: question,
+                mediaUrl: isVideo ? mainResult.videoUrl : mainResult.audioUrl,
+                mediaType: isVideo ? 'VIDEO' : 'AUDIO',
+                mimeType: isVideo ? 'video/mp4' : 'audio/mpeg',
+                textSummary: lyrics,
+                groundingMetadata: { ...metadata, imageUrl: mainResult.imageUrl, profileType: profile.type, profileTitle: profile.title }
+            };
+        } else if (profile.mediaType === 'IMAGE') {
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Generando imagen...');
+            const infographicBrief = await generateInfographicBrief(question, language || 'Spanish');
+            const imagePrompt = `Create a ${styleId || 'realistic'} educational image explaining: "${question}". \n\nContent: ${infographicBrief}`;
+            const { mediaUrl: base64Image, mimeType } = await generateImageService(imagePrompt, 'nano-banana', aspectRatio || '3:4');
+            
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Preservando imagen en storage...');
+            const secureUrl = await uploadImage(base64Image, 'nutonia-images');
+            
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Generando explicaciones...');
+            const { text: explanation, groundingMetadata } = await generateTextExplanation(question, profile, document, language || 'Spanish');
+            
+            result = {
+                topic: question,
+                mediaUrl: secureUrl,
+                mediaType: 'IMAGE',
+                mimeType,
+                textSummary: explanation,
+                groundingMetadata: { ...groundingMetadata, profileType: profile.type, profileTitle: profile.title }
+            };
+        } else if (profile.type === 'VIDEO_PRODUCTION') {
+            const rawResult = await videoProductionService.produceVideo(question, 2, voiceStyle || 'Puck', styleId || 'Cinematic', musicStyle?.name || 'Documentary', 'Spanish', aspectRatio, (msg) => updateMemoryJobStatus(jobId, 'PROCESSING', msg));
+            const parsedResult = JSON.parse(rawResult);
+            result = { topic: question, mediaUrl: parsedResult.mediaUrl, mediaType: 'VIDEO_PLAYLIST', mimeType: 'application/json', textSummary: "Video generado con Nutonia", groundingMetadata: { profileType: profile.type, profileTitle: profile.title } };
+        } else {
+            throw new Error(`Unsupported profile type: ${profile.type}`);
+        }
+
+        // Common finalization logic
+        if (!result.mediaUrl) throw new Error("Error: No se pudo obtener la URL del medio generado.");
+        
+        updateMemoryJobStatus(jobId, 'PROCESSING', 'Guardando contenido...');
+        const { data: savedContent, error: dbError } = await supabaseAdmin.from('content').insert({
+            creator_id: userId,
+            topic: result.topic,
+            media_type: result.mediaType === 'VIDEO_PLAYLIST' ? 'VIDEO' : result.mediaType,
+            media_url: result.mediaUrl,
+            text_summary: result.textSummary,
+            grounding_metadata: result.groundingMetadata,
+            is_public: true,
+            collection_id: collectionId
+        }).select().single();
+
+        if (dbError) throw new Error(`Failed to save content: ${dbError.message}`);
+        
+        updateMemoryJobStatus(jobId, 'COMPLETED', 'Generación completada', { contentId: savedContent.id, ...result });
+        console.log(`[MemoryJob] Job ${jobId} completed successfully!`);
+
+    } catch (error: any) {
+        console.error(`[MemoryJob] Job ${jobId} failed: `, error);
+        updateMemoryJobStatus(jobId, 'FAILED', `Error: ${error.message}`, undefined, error.message);
+    }
+}
+
 
 /**
  * POST /api/generate/content
@@ -55,7 +179,7 @@ export async function generateContent(req: AuthRequest, res: Response): Promise<
         // Generate unique job ID
         const jobId = nanoid();
 
-        // Create job metadata in Redis
+        // Create job metadata in Redis/Memory
         const jobData = {
             jobId,
             userId: req.user.id,
@@ -73,28 +197,48 @@ export async function generateContent(req: AuthRequest, res: Response): Promise<
             createdAt: new Date().toISOString(),
         };
 
-        await redis.set(`job:${jobId}`, JSON.stringify(jobData), 'EX', 3600); // 1 hour expiry
+        const isRedisOffline = redisStatus === 'OFFLINE' || redisStatus === 'ERROR' || redisStatus === 'DISCONNECTED' || redisStatus === 'INITIALIZING';
 
-        // Add job to BullMQ queue
-        await contentQueue.add(
-            'generate',
-            {
-                jobId,
-                userId: req.user.id,
-                question,
-                profile,
-                musicStyle,
-                styleId,
-                document,
-                voiceStyle,
-                aspectRatio,
-                language,
-                collectionId
-            },
-            {
-                jobId, // Use our jobId as BullMQ job ID
+        if (isRedisOffline) {
+            console.log(`[MemoryJob] Redis offline, initiating in-process job: ${jobId}`);
+            memoryJobs.set(jobId, jobData);
+            // Run in background
+            runJobInProcess(jobData, document).catch(err => {
+                console.error(`[MemoryJob] Background job error for ${jobId}:`, err);
+            });
+        } else {
+            try {
+                await redis.set(`job:${jobId}`, JSON.stringify(jobData), 'EX', 3600); // 1 hour expiry
+
+                // Add job to BullMQ queue
+                await contentQueue.add(
+                    'generate',
+                    {
+                        jobId,
+                        userId: req.user.id,
+                        question,
+                        profile,
+                        musicStyle,
+                        styleId,
+                        document,
+                        voiceStyle,
+                        aspectRatio,
+                        language,
+                        collectionId
+                    },
+                    {
+                        jobId, // Use our jobId as BullMQ job ID
+                    }
+                );
+            } catch (queueError) {
+                console.warn('Queue submission failed, falling back to in-process memory queue:', queueError);
+                memoryJobs.set(jobId, jobData);
+                // Run in background
+                runJobInProcess(jobData, document).catch(err => {
+                    console.error(`[MemoryJob] Background job error for ${jobId}:`, err);
+                });
             }
-        );
+        }
 
         // Record Transaction
         await supabaseAdmin.from('credit_transactions').insert({
@@ -105,7 +249,7 @@ export async function generateContent(req: AuthRequest, res: Response): Promise<
             metadata: { jobId, profileType: profile.type }
         });
 
-        console.log(`Job ${jobId} queued for user ${req.user.id}. Cost: ${cost}`);
+        console.log(`Job ${jobId} registered for user ${req.user.id}. Cost: ${cost} (In-process fallback: ${isRedisOffline})`);
 
         res.status(202).json({
             jobId,
@@ -183,13 +327,24 @@ export async function getGenerationStatus(req: AuthRequest, res: Response): Prom
     try {
         const { jobId } = req.params;
 
-        const jobDataStr = await redis.get(`job:${jobId}`);
-        if (!jobDataStr) {
+        let jobDataStr = null;
+        try {
+            jobDataStr = await redis.get(`job:${jobId}`);
+        } catch (e) {
+            console.warn(`Redis get failed for jobId ${jobId}, falling back to memory check.`);
+        }
+
+        let jobData = null;
+        if (jobDataStr) {
+            jobData = JSON.parse(jobDataStr);
+        } else {
+            jobData = memoryJobs.get(jobId);
+        }
+
+        if (!jobData) {
             res.status(404).json({ error: 'Job not found or expired' });
             return;
         }
-
-        const jobData = JSON.parse(jobDataStr);
 
         // Check if user owns this job (allow viewing if authenticated)
         if (req.user && jobData.userId !== req.user.id) {

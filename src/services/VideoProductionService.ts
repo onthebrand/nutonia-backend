@@ -94,8 +94,8 @@ export const videoProductionService = {
 
                     if (scene.visualType === 'VIDEO') {
                         try {
-                            // Using gemini-1.5-flash as fallback for video generation logic if veo-2.0 is not available in SDK
-                            const videoResult = await generateVideo(styledPrompt, 'gemini-1.5-flash');
+                            // Using gemini-2.5-flash as fallback for video generation logic if veo-2.0 is not available in SDK
+                            const videoResult = await generateVideo(styledPrompt, 'gemini-2.5-flash');
                             visualUrl = videoResult.mediaUrl;
                         } catch (videoError: any) {
                             console.error("Video generation failed, falling back to Image:", videoError);
@@ -107,7 +107,7 @@ export const videoProductionService = {
 
                             // FALLBACK TO IMAGE
                             try {
-                                const imageResult = await generateImage(styledPrompt, 'gemini-1.5-flash');
+                                const imageResult = await generateImage(styledPrompt, 'gemini-2.5-flash');
                                 visualUrl = imageResult.mediaUrl;
                                 scene.visualType = 'IMAGE'; // Update mutable scene object so playlist knows it's an image
 
@@ -119,7 +119,7 @@ export const videoProductionService = {
                             }
                         }
                     } else {
-                        const imageResult = await generateImage(styledPrompt, 'gemini-1.5-flash');
+                        const imageResult = await generateImage(styledPrompt, 'gemini-2.5-flash');
                         visualUrl = imageResult.mediaUrl;
                         try {
                             if (visualUrl && !visualUrl.startsWith('http')) {

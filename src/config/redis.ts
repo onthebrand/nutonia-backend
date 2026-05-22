@@ -16,6 +16,7 @@ export const redis = new Redis(env.REDIS_URL, {
     connectTimeout: 5000, // Faster timeout for local dev
     enableReadyCheck: false,
     lazyConnect: true, // DO NOT connect on import
+    enableOfflineQueue: false, // CRITICAL: Do not hang commands if connection is down/failing
     retryStrategy(times: number) {
         if (times > 3 && (env.REDIS_URL.includes('localhost') || env.REDIS_URL.includes('127.0.0.1'))) {
             // Give up quickly if local redis is missing to avoid process hanging
