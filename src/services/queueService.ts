@@ -149,6 +149,17 @@ if (redisStatus !== 'OFFLINE') {
                             textSummary: explanation,
                             groundingMetadata: { ...groundingMetadata, profileType: profile.type, profileTitle: profile.title }
                         };
+                    } else if (profile.type === 'PRESENTATION') {
+                        await updateJobStatus(jobId, 'PROCESSING', 'Generando presentación...');
+                        const { text: presentationText, imageUrl: coverUrl, metadata } = await generatePresentation(question, profile, styleId, language || 'Spanish');
+                        result = {
+                            topic: question,
+                            mediaUrl: coverUrl,
+                            mediaType: 'IMAGE',
+                            mimeType: 'image/png',
+                            textSummary: presentationText,
+                            groundingMetadata: { ...metadata, profileType: profile.type, profileTitle: profile.title }
+                        };
                     } else if (profile.type === 'VIDEO_PRODUCTION') {
                         const rawResult = await videoProductionService.produceVideo(question, 2, voiceStyle || 'Puck', styleId || 'Cinematic', musicStyle?.name || 'Documentary', 'Spanish', aspectRatio, (msg) => updateJobStatus(jobId, 'PROCESSING', msg));
                         const parsedResult = JSON.parse(rawResult);

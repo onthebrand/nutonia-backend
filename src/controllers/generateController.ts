@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import redis, { redisStatus } from '../config/redis.js';
 import { contentQueue } from '../services/queueService.js';
 import { videoProductionService } from '../services/VideoProductionService.js';
-import { generateLyrics as generateLyricsService, generateImage as generateImageService, generateTextExplanation, generateInfographicBrief } from '../services/geminiService.js';
+import { generateLyrics as generateLyricsService, generateImage as generateImageService, generateTextExplanation, generateInfographicBrief, generatePresentation } from '../services/geminiService.js';
 import { checkUserViolations, analyzePrompt, recordViolation } from '../services/moderationService.js';
 import { generateSongWithSuno } from '../services/sunoService.js';
 import { uploadImage } from '../services/storageService.js';
@@ -96,6 +96,17 @@ async function runJobInProcess(jobData: any, document?: any) {
                 textSummary: explanation,
                 groundingMetadata: { ...groundingMetadata, profileType: profile.type, profileTitle: profile.title }
             };
+        } else if (profile.type === 'PRESENTATION') {
+            updateMemoryJobStatus(jobId, 'PROCESSING', 'Generando presentación...');
+            const { text: presentationText, imageUrl: coverUrl, metadata } = await generatePresentation(question, profile, styleId, language || 'Spanish');
+            result = {
+                topic: question,
+                mediaUrl: coverUrl,
+                mediaType: 'IMAGE',
+                mimeType: 'image/png',
+                textSummary: presentationText,
+                groundingMetadata: { ...metadata, profileType: profile.type, profileTitle: profile.title }
+            };
         } else if (profile.type === 'VIDEO_PRODUCTION') {
             const rawResult = await videoProductionService.produceVideo(question, 2, voiceStyle || 'Puck', styleId || 'Cinematic', musicStyle?.name || 'Documentary', 'Spanish', aspectRatio, (msg) => updateMemoryJobStatus(jobId, 'PROCESSING', msg));
             const parsedResult = JSON.parse(rawResult);
@@ -150,12 +161,7 @@ export async function generateContent(req: AuthRequest, res: Response): Promise<
         }
 
         // Determine Cost
-        let cost = 10; // Default for text/image
-        if (profile.type === 'KINESTHETIC' || profile.type === 'MUSIC_VIDEO' || profile.type === 'VIDEO_PRODUCTION' || profile.type === 'INTERACTIVE_WEB') {
-            cost = 50;
-        } else if (profile.type === 'MUSICAL') {
-            cost = 25;
-        }
+        const cost = 50; // Costo plano para todos los formatos en Beta
 
         // Check and Deduct Credits (Atomically)
         const { data: success, error: creditError } = await supabaseAdmin
