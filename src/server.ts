@@ -38,6 +38,8 @@ app.use(
             const allowedDomains = [
                 'https://onthebrand.cl',
                 'https://www.onthebrand.cl',
+                'https://nutonia.cl',
+                'https://www.nutonia.cl',
                 'https://onthebrand-neurolearn.vercel.app',
                 env.FRONTEND_URL
             ];
