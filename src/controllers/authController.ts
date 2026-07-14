@@ -208,7 +208,7 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
         // Return full profile merging DB and Metadata
         const { data: dbProfile, error: fetchError } = await supabaseAdmin
             .from('users')
-            .select('id, email, username, credits, role, handle, avatar_url')
+            .select('id, email, username, credits, role')
             .eq('id', user.id)
             .single();
 
@@ -237,9 +237,9 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
             credits: userCredits,
             role: dbProfile.role,
             channel: {
-                handle: dbProfile.handle || dbProfile.username?.toLowerCase().replace(/\s+/g, '_') || user.email!.split('@')[0],
+                handle: (dbProfile as any).handle || dbProfile.username?.toLowerCase().replace(/\s+/g, '_') || user.email!.split('@')[0],
                 displayName: dbProfile.username || user.user_metadata.full_name || user.email!.split('@')[0],
-                avatarUrl: dbProfile.avatar_url || user.user_metadata.avatarUrl || user.user_metadata.avatar_url || ''
+                avatarUrl: (dbProfile as any).avatar_url || user.user_metadata.avatarUrl || user.user_metadata.avatar_url || ''
             },
             preferences: {
                 autoplay: true,
