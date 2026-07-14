@@ -203,6 +203,7 @@ INSTRUCCIONES CRÍTICAS PARA CALIDAD PREMIUM:
    - Escribe SOLAMENTE la letra estructurada.
    - Usa etiquetas entre CORCHETES como [Verse 1], [Chorus], etc.
    - Termina SIEMPRE con la etiqueta [End] después del Outro.
+   - **NUNCA incluyas acotaciones instrumentales, efectos de sonido o instrucciones musicales entre paréntesis como (Sonido de teclado...), (Fade out...), (Solo de guitarra), etc.** La IA de canto (Suno) cantará literalmente cualquier cosa que pongas entre paréntesis, por lo que arruinará la canción. Escribe ÚNICAMENTE las palabras que el vocalista debe cantar.
 
 Aprovecha el material para explicar el tema de principio a fin de forma equilibrada.`;
 
