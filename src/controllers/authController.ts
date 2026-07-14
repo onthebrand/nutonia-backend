@@ -208,7 +208,7 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
         // Return full profile merging DB and Metadata
         const { data: dbProfile, error: fetchError } = await supabaseAdmin
             .from('users')
-            .select('id, email, username, credits, role')
+            .select('id, email, username, credits, role, handle, avatar_url')
             .eq('id', user.id)
             .single();
 

@@ -4,7 +4,7 @@ import { env } from '../config/env.js';
 import redis from '../config/redis.js';
 
 class HybridRateLimitStore {
-    private prefix: string;
+    prefix: string;
     private redisStore: any = null;
     private memoryStore = new Map<string, { hits: number; resetTime: Date }>();
     private windowMs: number;
