@@ -237,18 +237,18 @@ export async function syncUser(req: Request, res: Response): Promise<void> {
             credits: userCredits,
             role: dbProfile.role,
             channel: {
-                handle: (dbProfile as any).handle || dbProfile.username?.toLowerCase().replace(/\s+/g, '_') || user.email!.split('@')[0],
-                displayName: dbProfile.username || user.user_metadata.full_name || user.email!.split('@')[0],
-                avatarUrl: (dbProfile as any).avatar_url || user.user_metadata.avatarUrl || user.user_metadata.avatar_url || ''
+                handle: (dbProfile as any).handle || dbProfile.username?.toLowerCase().replace(/\s+/g, '_') || user.email?.split('@')[0] || 'usuario',
+                displayName: dbProfile.username || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+                avatarUrl: (dbProfile as any).avatar_url || user.user_metadata?.avatarUrl || user.user_metadata?.avatar_url || ''
             },
             preferences: {
                 autoplay: true,
                 theme: 'dark',
                 notifications: true
             },
-            bio: user.user_metadata.bio || '',
-            onboardingCompleted: user.user_metadata.onboardingCompleted || false,
-            learningProfile: user.user_metadata.learningProfile || null
+            bio: user.user_metadata?.bio || '',
+            onboardingCompleted: user.user_metadata?.onboardingCompleted || false,
+            learningProfile: user.user_metadata?.learningProfile || null
         };
 
         res.json({ user: fullProfile });
