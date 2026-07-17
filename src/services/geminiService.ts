@@ -1055,7 +1055,7 @@ export async function generateSubtopics(parentTopic: string, context: string = '
         try {
             console.log(`[GeminiService] Generating subtopics for parent: "${parentTopic}" (attempts left: ${attempts})`);
             const modelInstance = ai.getGenerativeModel({
-                model: "gemini-2.5-flash-lite",
+                model: "gemini-2.5-flash",
                 generationConfig: {
                     responseMimeType: "application/json",
                     responseSchema: {
