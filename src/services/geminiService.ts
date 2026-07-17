@@ -1071,7 +1071,6 @@ export async function generateSubtopics(parentTopic: string, context: string = '
                         }
                     },
                     temperature: 0.1,
-                    maxOutputTokens: 1000,
                 }
             });
 
