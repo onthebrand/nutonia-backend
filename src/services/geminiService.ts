@@ -290,13 +290,18 @@ Aprovecha el material para explicar el tema de principio a fin de forma equilibr
 /**
  * Generate image with Gemini (supports Nano Banana / Gemini 3 Pro)
  */
-export async function generateImage(prompt: string, model: string = 'gemini-2.5-flash', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
+export async function generateImage(prompt: string, model: string = 'nano-banana', aspectRatio: string = '16:9'): Promise<GeneratedContent> {
     const ai = getClient();
 
     try {
         const config: any = {};
 
         let safetySettings: any[] | undefined = undefined;
+
+        // Force image generation model if caller requested a text model
+        if (model === 'gemini-2.5-flash' || model === 'gemini-1.5-flash' || model === 'gemini-flash-latest') {
+            model = 'nano-banana';
+        }
 
         // Configure for High Quality Image Generation (Nano Banana / Gemini 3 Pro / Imagen)
         if (model.includes('gemini-3') || model.includes('nano-banana') || model.includes('imagen')) {
